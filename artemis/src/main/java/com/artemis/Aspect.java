@@ -375,5 +375,30 @@ public class Aspect {
 				componentBits.set(tf.getIndexFor(t));
 			}
 		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (this == o) return true;
+			if (o == null || getClass() != o.getClass()) return false;
+
+			Builder builder = (Builder) o;
+
+			if (!allTypes.equals(builder.allTypes))
+				return false;
+			if (!exclusionTypes.equals(builder.exclusionTypes))
+				return false;
+			if (!oneTypes.equals(builder.oneTypes))
+				return false;
+
+			return true;
+		}
+
+		@Override
+		public int hashCode() {
+			int result = allTypes.hashCode();
+			result = 31 * result + exclusionTypes.hashCode();
+			result = 31 * result + oneTypes.hashCode();
+			return result;
+		}
 	}
 }

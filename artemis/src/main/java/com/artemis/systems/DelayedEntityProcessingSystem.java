@@ -3,6 +3,7 @@ package com.artemis.systems;
 import com.artemis.Aspect;
 import com.artemis.Entity;
 import com.artemis.EntitySystem;
+import com.artemis.utils.Bag;
 import com.artemis.utils.IntBag;
 
 
@@ -53,10 +54,15 @@ public abstract class DelayedEntityProcessingSystem extends EntitySystem {
 	}
 
 	@Override
-	protected final void processEntities(IntBag entities) {
+	protected final void processSystem() {
+		int processed = actives.size();
+		if (processed == 0) {
+			stop();
+			return;
+		}
+
 		delay = Float.MAX_VALUE;
-		int[] array = entities.getData();
-		int processed = entities.size();
+		int[] array = actives.getData();
 		Entity e = flyweight;
 		for (int i = 0; processed > i; i++) {
 			e.id = array[i];
@@ -69,7 +75,6 @@ public abstract class DelayedEntityProcessingSystem extends EntitySystem {
 			}
 		}
 		acc = 0;
-		if (getActives().size() == 0) stop();
 	}
 
 
@@ -95,12 +100,9 @@ public abstract class DelayedEntityProcessingSystem extends EntitySystem {
 
 	@Override
 	protected final boolean checkProcessing() {
-		if(running) {
+		if (running) {
 			acc += getTimeDelta();
-			
-			if(acc >= delay) {
-				return true;
-			}
+			return acc >= delay;
 		}
 		return false;
 	}

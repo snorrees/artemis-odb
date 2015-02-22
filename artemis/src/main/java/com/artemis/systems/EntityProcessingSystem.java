@@ -3,10 +3,6 @@ package com.artemis.systems;
 import com.artemis.Aspect;
 import com.artemis.Entity;
 import com.artemis.EntitySystem;
-import com.artemis.utils.Bag;
-import com.artemis.utils.ImmutableBag;
-import com.artemis.utils.IntBag;
-
 
 /**
  * A typical entity system.
@@ -18,18 +14,15 @@ import com.artemis.utils.IntBag;
  * @author Arni Arent
  */
 public abstract class EntityProcessingSystem extends EntitySystem {
-
-
 	/**
 	 * Creates a new EntityProcessingSystem.
 	 *
 	 * @param aspect
-	 *			the aspect to match entites
+	 *			the aspect to match entities
 	 */
 	public EntityProcessingSystem(Aspect.Builder aspect) {
 		super(aspect);
 	}
-
 
 	/**
 	 * Process a entity this system is interested in.
@@ -40,10 +33,10 @@ public abstract class EntityProcessingSystem extends EntitySystem {
 	protected abstract void process(Entity e);
 
 	@Override
-	protected final void processEntities(IntBag entities) {
-		int[] array = entities.getData();
+	protected final void processSystem() {
+		int[] array = actives.getData();
 		Entity e = flyweight;
-		for (int i = 0, s = entities.size(); s > i; i++) {
+		for (int i = 0, s = actives.size(); s > i; i++) {
 			e.id = array[i];
 			process(e);
 		}

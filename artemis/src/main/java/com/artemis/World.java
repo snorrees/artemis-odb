@@ -11,7 +11,6 @@ import com.artemis.annotations.Wire;
 import com.artemis.managers.UuidEntityManager;
 import com.artemis.utils.Bag;
 import com.artemis.utils.ImmutableBag;
-import com.artemis.utils.reflect.Annotation;
 import com.artemis.utils.reflect.ClassReflection;
 import com.artemis.utils.reflect.Constructor;
 import com.artemis.utils.reflect.ReflectionException;
@@ -39,6 +38,8 @@ public class World {
 	 * Manages all component-entity associations for the world.
 	 */
 	private final ComponentManager cm;
+	private final AspectSubscriptionManager am;
+
 	/**
 	 * The time passed since the last update.
 	 */
@@ -82,22 +83,20 @@ public class World {
 	/**
 	 * Contains all systems and systems classes mapped.
 	 */
-	private final Map<Class<?>, EntitySystem> systems;
+	private final Map<Class<?>, BaseSystem> systems;
 	/**
 	 * Contains all systems unordered.
 	 */
-	private final Bag<EntitySystem> systemsBag;
-	/**
-	 * Contains all uninitialized systems. *
-	 */
-	private final Bag<EntitySystem> systemsToInit;
-	
+	private final Bag<BaseSystem> systemsBag;
+
 	private boolean registerUuids;
 	private Injector injector;
 	
 	final EntityEditPool editPool = new EntityEditPool(this);
 	
 	private boolean initialized;
+
+	private SystemInvocationStrategy invocationStrategy;
 	
 	/**
 	 * Creates a new world.
@@ -129,9 +128,8 @@ public class World {
 		managers = new IdentityHashMap<Class<? extends Manager>, Manager>();
 		managersBag = new Bag<Manager>();
 
-		systems = new IdentityHashMap<Class<?>, EntitySystem>();
-		systemsBag = new Bag<EntitySystem>();
-		systemsToInit = new Bag<EntitySystem>();
+		systems = new IdentityHashMap<Class<?>, BaseSystem>();
+		systemsBag = new Bag<BaseSystem>();
 
 		added = new WildBag<Entity>();
 		changed = new WildBag<Entity>();
@@ -145,12 +143,10 @@ public class World {
 		enabledPerformer = new EnabledPerformer();
 		disabledPerformer = new DisabledPerformer();
 
-		cm = new ComponentManager(configuration.expectedEntityCount());
-		setManager(cm);
+		cm = setManager(new ComponentManager(configuration.expectedEntityCount()));
+		em = setManager(new EntityManager(configuration.expectedEntityCount()));
+		am = setManager(new AspectSubscriptionManager());
 
-		em = new EntityManager(configuration.expectedEntityCount());
-		setManager(em);
-		
 		injector = new Injector(this, configuration);
 	}
 	
@@ -168,6 +164,9 @@ public class World {
 		}
 
 		initializeSystems();
+
+		if (invocationStrategy == null)
+			setInvocationStrategy(new InvocationStrategy());
 	}
 
 	/**
@@ -213,7 +212,7 @@ public class World {
 			}
 		}
 
-		for (EntitySystem system : systemsBag) {
+		for (BaseSystem system : systemsBag) {
 			try {
 				system.dispose();
 			} catch (Exception e) {
@@ -226,7 +225,7 @@ public class World {
 	}
 	
 	@SuppressWarnings("unchecked")
-	<T extends EntityFactory> T createFactory(Class<?> factory) {
+	public <T extends EntityFactory> T createFactory(Class<?> factory) {
 		if (!factory.isInterface())
 			throw new MundaneWireException("Expected interface for type: " + factory);
 		
@@ -355,12 +354,19 @@ public class World {
 	 * Delete the entity from the world.
 	 *
 	 * @param e the entity to delete
-	 * 
-	 * @deprecated Better invoke {@link Entity#deleteFromWorld()} or {@link EntityEdit#deleteEntity()}
 	 */
-	@Deprecated @SuppressWarnings("static-method")
 	public void deleteEntity(Entity e) {
 		e.edit().deleteEntity();
+	}
+
+
+	/**
+	 * Delete the entity from the world.
+	 *
+	 * @param entityId the entity to delete
+	 */
+	public void deleteEntity(int entityId) {
+		deleteEntity(em.getEntity(entityId));
 	}
 	
 	/**
@@ -454,7 +460,7 @@ public class World {
 	 *
 	 * @return all entity systems in world
 	 */
-	public ImmutableBag<EntitySystem> getSystems() {
+	public ImmutableBag<BaseSystem> getSystems() {
 		return systemsBag;
 	}
 	
@@ -466,7 +472,7 @@ public class World {
 	 * @param system the system to add
 	 * @return the added system
 	 */
-	public <T extends EntitySystem> T setSystem(T system) {
+	public <T extends BaseSystem> T setSystem(T system) {
 		return setSystem(system, false);
 	}
 
@@ -479,20 +485,18 @@ public class World {
 	 *				{@link #process()}
 	 * @return the added system
 	 */
-	public <T extends EntitySystem> T setSystem(T system, boolean passive) {
+	public <T extends BaseSystem> T setSystem(T system, boolean passive) {
 
 		if (initialized) {
 			String err = "It is forbidden to add systems after calling World#initialized.";
 			throw new RuntimeException(err);
 		}
-				
 
-		system.setWorld(this);
 		system.setPassive(passive);
+		system.setWorld(this);
 
 		systems.put(system.getClass(), system);
 		systemsBag.add(system);
-		systemsToInit.add(system);
 
 		return system;
 	}
@@ -504,24 +508,7 @@ public class World {
 	 * @deprecated A world should be static once initialized
 	 */
 	@Deprecated
-	public void deleteSystem(EntitySystem system) {
-		systems.remove(system.getClass());
-		systemsBag.remove(system);
-		systemsToInit.remove(system);
-	}
-
-	/**
-	 * Run performers on all systems.
-	 *
-	 * @param performer the performer to run
-	 * @param entities the entity to pass as argument to the systems
-	 */
-	private void notifySystems(Performer performer, WildBag<Entity> entities) {
-		Object[] data = systemsBag.getData();
-		for (int i = 0, s = systemsBag.size(); s > i; i++) {
-			performer.perform((EntitySystem) data[i], entities);
-		}
-	}
+	public void deleteSystem(BaseSystem system) {}
 
 	/**
 	 * Run performers on all managers.
@@ -544,7 +531,7 @@ public class World {
 	 * @return instance of the system in this world
 	 */
 	@SuppressWarnings("unchecked")
-	public <T extends EntitySystem> T getSystem(Class<T> type) {
+	public <T extends BaseSystem> T getSystem(Class<T> type) {
 		return (T) systems.get(type);
 	}
 
@@ -559,47 +546,36 @@ public class World {
 			return;
 		
 		notifyManagers(performer, entityBag);
-		notifySystems(performer, entityBag);
-		entityBag.setSize(0);
 	}
-	
-	void processComponentIdentity(int id, BitSet componentBits) {
-		Object[] data = systemsBag.getData();
-		for (int i = 0, s = systemsBag.size(); s > i; i++) {
-			((EntitySystem)data[i]).processComponentIdentity(id, componentBits);
-		}
+
+	public void setInvocationStrategy(SystemInvocationStrategy invocationStrategy) {
+		this.invocationStrategy = invocationStrategy;
+		invocationStrategy.setWorld(this);
 	}
 
 	/**
 	 * Process all non-passive systems.
 	 */
 	public void process() {
+		assertInitialized();
+
 		updateEntityStates();
 
 		em.clean();
 		cm.clean();
 
-		// Some systems may add other systems in their initialize() method.
-		// Initialize those newly added systems right after setSystem() call.
-		if (systemsToInit.size() > 0) {
-			initializeSystems();
-		}
-
-		Object[] systemsData = systemsBag.getData();
-		for (int i = 0, s = systemsBag.size(); s > i; i++) {
-			updateEntityStates();
-			
-			EntitySystem system = (EntitySystem) systemsData[i];
-			if (!system.isPassive()) {
-				system.process();
-			}
-		}
+		invocationStrategy.process(systemsBag);
 	}
 
-	private void updateEntityStates() {
+	void updateEntityStates() {
+		// the first block is for entities with precalculated compositionIds,
+		// such as those affected by EntityTransmuters, Archetypes
+		// and EntityFactories.
 		while (added.size() > 0 || changed.size() > 0) {
 			check(added, addedPerformer);
 			check(changed, changedPerformer);
+
+			am.process(added, changed, deleted);
 		}
 		
 		while(editPool.processEntities()) {
@@ -608,18 +584,23 @@ public class World {
 			check(deleted, deletedPerformer);
 			check(disabled, disabledPerformer);
 			check(enabled, enabledPerformer);
+
+			am.process(added, changed, deleted);
+
+			// we're cheating here to support disabled and enabled entities with the
+			// new subscription lists
+			// @deprecate
+			am.process(added, enabled, disabled);
 		}
 	}
 
 	private void initializeSystems() {
-		for (int i = 0, s = systemsToInit.size(); i < s; i++) {
-			EntitySystem es = systemsToInit.get(i);
-			injector.inject(es);
-			es.initialize();
-			es.flyweight = new Entity(this, -1);
+		for (int i = 0, s = systemsBag.size(); i < s; i++) {
+			BaseSystem system = systemsBag.get(i);
+			injector.inject(system);
+			system.initialize();
 		}
-		systemsToInit.clear();
-		processComponentIdentity(NO_COMPONENTS, new BitSet());
+		am.processComponentIdentity(NO_COMPONENTS, new BitSet());
 	}
 
 	boolean hasUuidManager() {

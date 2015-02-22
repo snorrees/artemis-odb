@@ -2,13 +2,23 @@
 
 #### Version: 0.9.1-SNAPSHOT
 - **MINOR BREAKING CHANGES**
+  - BaseSystem is now the most basic system type.
+    - World#getSystems returns Bag<BaseSystem>.
   - EntitySystem constructor expects Aspect.Builder:
     - Implies existing classes have to be recompiled against this release.
-	- Existing custom entity systems need to pass Arspect.Builder to EntitySystem.
+	- Existing custom entity systems need to pass Aspect.Builder to EntitySystem.
+  - EntitySystem no longer implements EntityObserver.
+  - ArtemisProfiler#initialize now requires BaseSystem instead of EntitySystem.
+  - VoidEntitySystem no longer subclass of EntitySystem.
 
+- New internal EntitySubscription and accompanying AspectSubscriptionManager
+  resulting in cleaner and more flexible EntitySystems.
+- SystemInvocationStrategy opening up for more granular control over system  processing.
+  - Default strategy behaves as before.
 - Aspect split into Aspect and Aspect.Builder.
   - Simplified static method names, mirroring Aspect's old instance methods.
-
+- **Fix**: Uninitialized worlds threw cryptic NPE when invoking #process.
+- **Fix**: `World#createFactory(Class<EntityFactory>)` was package local.
 
 #### Version: 0.9.0 - 2015-02-03
 - **MINOR BREAKING CHANGES**
