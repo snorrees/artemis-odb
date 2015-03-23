@@ -1,6 +1,9 @@
 package com.artemis;
 
+import com.artemis.io.ArchetypeSection;
+import com.artemis.io.EntitySection;
 import com.artemis.utils.Bag;
+import com.artemis.utils.ImmutableBag;
 import com.artemis.utils.IntBag;
 import com.artemis.EntityTransmuter.TransmuteOperation;
 
@@ -29,7 +32,7 @@ public class EntityManager extends Manager {
 	private long deleted;
 	private RecyclingEntityFactory recyclingEntityFactory;
 	
-	ComponentIdentityResolver identityResolver = new ComponentIdentityResolver();
+	private ComponentIdentityResolver identityResolver = new ComponentIdentityResolver();
 	private IntBag entityToIdentity = new IntBag();
 	private int highestSeenIdentity;
 	private AspectSubscriptionManager subscriptionManager;
@@ -80,7 +83,7 @@ public class EntityManager extends Manager {
 		if (identityIndex == 0)
 			identityIndex = forceResolveIdentity(e);
 		
-		return identityResolver.composition.get(identityIndex);
+		return identityResolver.compositions.get(identityIndex);
 	}
 	
 	/**
@@ -124,7 +127,7 @@ public class EntityManager extends Manager {
 	 * @param componentBits composition to fetch unique identifier for.
 	 * @return Unique identifier for passed composition.
 	 */
-	int compositionIdentity(BitSet componentBits) {
+	public int compositionIdentity(BitSet componentBits) {
 		int identity = identityResolver.getIdentity(componentBits);
 		if (identity > highestSeenIdentity) {
 			subscriptionManager.processComponentIdentity(identity, componentBits);
@@ -242,7 +245,7 @@ public class EntityManager extends Manager {
 	public long getTotalDeleted() {
 		return deleted;
 	}
-	
+
 	protected void clean() {
 		recyclingEntityFactory.recycle();
 	}
@@ -264,25 +267,33 @@ public class EntityManager extends Manager {
 		return entityToIdentity.get(e.getId());
 	}
 
+	public void readSection(ArchetypeSection.Callback section) {
+		section.read(identityResolver.compositions);
+	}
+
+	public void read(EntitySection.Callback section) {
+		section.read(entities);
+	}
+
 	/** Tracks all unique component compositions. */
 	private static final class ComponentIdentityResolver {
-		private final Bag<BitSet> composition;
+		private final Bag<BitSet> compositions;
 		
 		ComponentIdentityResolver() {
-			composition = new Bag<BitSet>();
-			composition.add(null);
-			composition.add(new BitSet());
+			compositions = new Bag<BitSet>();
+			compositions.add(null);
+			compositions.add(new BitSet());
 		}
 
 		/** Fetch unique identity for passed composition. */
 		int getIdentity(BitSet components) {
-			Object[] bitsets = composition.getData();
-			int size = composition.size();
+			Object[] bitsets = compositions.getData();
+			int size = compositions.size();
 			for (int i = NO_COMPONENTS; size > i; i++) { // want to start from 1 so that 0 can mean null
 				if (components.equals(bitsets[i]))
 					return i;
 			}
-			composition.add((BitSet)components.clone());
+			compositions.add((BitSet) components.clone());
 			return size;
 		}
 	}
@@ -308,7 +319,7 @@ public class EntityManager extends Manager {
 		void recycle() {
 			int s = limbo.size();
 			if (s == 0) return;
-			
+
 			Object[] data = limbo.getData();
 			for (int i = 0; s > i; i++) {
 				Entity e = (Entity) data[i];

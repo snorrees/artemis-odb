@@ -617,7 +617,7 @@ public class ReflectionCacheSourceCreator {
 					} catch (InvocationTargetException e) {
 						logger.log(Type.ERROR, "Error invoking annotation method.");
 					}
-					// write result as return value
+					// sectionToWorld result as return value
 					if (invokeResult != null) {
 						if (returnType.equals(String[].class)) {
 							// String[]

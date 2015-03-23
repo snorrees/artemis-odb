@@ -15,4 +15,9 @@ public class FcEntitySection extends EntitySection {
 	protected void write(OutputStream is) {
 
 	}
+
+	@Override
+	protected void clear() {
+
+	}
 }

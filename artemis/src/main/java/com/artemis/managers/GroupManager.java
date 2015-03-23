@@ -112,7 +112,7 @@ public class GroupManager extends Manager {
 	 * @param group
 	 *			name of the group
 	 *
-	 * @return read-only bag of entities belonging to the group
+	 * @return worldToModel-only bag of entities belonging to the group
 	 */
 	public ImmutableBag<Entity> getEntities(String group) {
 		Bag<Entity> entities = entitiesByGroup.get(group);

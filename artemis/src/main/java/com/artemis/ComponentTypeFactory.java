@@ -17,7 +17,7 @@ public class ComponentTypeFactory {
 	private int componentTypeCount = 0;
 	
 	/** Index of this component type in componentTypes. */
-	private final Bag<ComponentType> types = new Bag<ComponentType>();
+	final Bag<ComponentType> types = new Bag<ComponentType>();
 	
 	
 	/**
@@ -54,7 +54,7 @@ public class ComponentTypeFactory {
 	 *
 	 * @return the component's {@link ComponentType}
 	 */
-	public ComponentType getTypeFor(int index) {
+	protected ComponentType getTypeFor(int index) {
 		return types.get(index);
 	}
 	

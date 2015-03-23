@@ -2,6 +2,7 @@ package com.artemis;
 
 import java.util.BitSet;
 
+import com.artemis.io.ComponentTypeSection;
 import com.artemis.utils.Bag;
 import com.artemis.utils.reflect.ClassReflection;
 import com.artemis.utils.reflect.Constructor;
@@ -30,7 +31,7 @@ public class ComponentManager extends Manager {
 	
 	private int highestSeenEntityId;
 	
-	protected final ComponentTypeFactory typeFactory;
+	final ComponentTypeFactory typeFactory;
 
 	/**
 	 * Creates a new instance of {@link ComponentManager}.
@@ -91,7 +92,7 @@ public class ComponentManager extends Manager {
 
 	private void ensurePackedComponentCapacity(Entity owner) {
 		int id = owner.getId();
-		if ((highestSeenEntityId - 1) < id) {
+		if ((highestSeenEntityId - 1) < id) { // FIXME: this looks buggy as hell
 			highestSeenEntityId = id;
 			for (int i = 0, s = packedComponents.size(); s > i; i++) {
 				PackedComponent component = packedComponents.get(i);
@@ -167,6 +168,11 @@ public class ComponentManager extends Manager {
 				((PackedComponent.DisposedWithWorld)component).free(world);
 			}
 		}
+	}
+
+
+	public void read(ComponentTypeSection.Callback section) {
+		section.read(typeFactory.types);
 	}
 
 	/**
@@ -257,7 +263,7 @@ public class ComponentManager extends Manager {
 			throw new InvalidComponentException(type.getType(), "PackedComponent types aren't supported.");
 
 		Bag<Component> components = componentsByType.safeGet(type.getIndex());
-		if(components == null) {
+		if (components == null) {
 			components = new Bag<Component>();
 			componentsByType.set(type.getIndex(), components);
 		}
