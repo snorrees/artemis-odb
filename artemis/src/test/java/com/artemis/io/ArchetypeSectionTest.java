@@ -5,7 +5,7 @@ import com.artemis.component.ComponentX;
 import com.artemis.component.ComponentY;
 import com.artemis.io.section.NullArchetypeSection;
 import com.artemis.io.section.NullComponentTypeSection;
-import com.artemis.utils.ArtemisTestUtils;
+import com.artemis.ArtemisTestUtils;
 import com.artemis.utils.ImmutableBag;
 import org.junit.Test;
 

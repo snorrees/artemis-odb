@@ -1,19 +1,14 @@
 package com.artemis.io;
 
-import com.artemis.Entity;
 import com.artemis.World;
 import com.artemis.component.ComponentX;
 import com.artemis.component.ComponentY;
 import com.artemis.io.section.NullArchetypeSection;
 import com.artemis.io.section.NullComponentTypeSection;
 import com.artemis.io.section.NullEntitySection;
-import junit.framework.Assert;
 import org.junit.Test;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-
-import static com.artemis.utils.ArtemisTestUtils.createEntity;
+import static com.artemis.ArtemisTestUtils.compositionId;
 import static org.junit.Assert.*;
 
 public class EntitySectionTest {
@@ -38,22 +33,38 @@ public class EntitySectionTest {
 
 		world.process();
 
-		WorldModel wm = createWorldModel(world);
-		System.out.println(wm);
-
 		World world2 = new World();
 		world2.initialize();
 
-		wm.modelToWorld(world2);
-
+		worldModel(world).modelToWorld(world2);
 
 		world2.process();
-		Entity e = world2.getEntity(0);
 
-		fail("not tested for equality yet");
+		// sanity check
+		assertNotEquals(
+			compositionId(world2, ComponentX.class, ComponentY.class),
+			compositionId(world2, ComponentY.class));
+
+		assertEquals(
+			compositionId(world2, ComponentX.class, ComponentY.class),
+			world2.getEntity(0).getCompositionId());
+
+		assertEquals(
+			compositionId(world2, ComponentX.class),
+			world2.getEntity(1).getCompositionId());
+
+		assertEquals(
+			compositionId(world2, ComponentX.class, ComponentY.class),
+			world2.getEntity(2).getCompositionId());
+
+		assertEquals(
+			compositionId(world2, ComponentY.class),
+			world2.getEntity(3).getCompositionId());
+
+		fail("not checking component values");
 	}
 
-	private WorldModel createWorldModel(World world) {
+	private static WorldModel worldModel(World world) {
 		WorldModel wm = WorldModel.create()
 				.add(NullComponentTypeSection.class)
 				.add(NullArchetypeSection.class)

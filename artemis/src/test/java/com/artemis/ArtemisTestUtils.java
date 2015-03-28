@@ -1,9 +1,8 @@
-package com.artemis.utils;
+package com.artemis;
 
-import com.artemis.Component;
-import com.artemis.EntityEdit;
-import com.artemis.World;
+import com.artemis.utils.ImmutableBag;
 
+import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -24,5 +23,14 @@ public final class ArtemisTestUtils {
 			ee.create(c);
 
 		return ee.getEntity().getCompositionId();
+	}
+
+	public static int compositionId(World world, Class<? extends Component>... components) {
+		BitSet bs = new BitSet();
+		ComponentTypeFactory tf = world.getComponentManager().typeFactory;
+		for (Class<? extends Component> component : components)
+			bs.set(tf.getIndexFor(component));
+
+		return world.getEntityManager().compositionIdentity(bs);
 	}
 }
