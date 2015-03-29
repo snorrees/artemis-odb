@@ -1,6 +1,5 @@
 package com.artemis.io.section;
 
-import com.artemis.io.ArchetypeSection;
 import com.artemis.io.ComponentTypeSection;
 
 import java.io.InputStream;
