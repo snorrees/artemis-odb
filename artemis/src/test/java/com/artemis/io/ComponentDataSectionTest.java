@@ -28,6 +28,11 @@ public class ComponentDataSectionTest {
     }
 
     @Test
+    public void reflector_read_test() {
+
+    }
+
+    @Test
     public void write_components() {
         fail();
     }
