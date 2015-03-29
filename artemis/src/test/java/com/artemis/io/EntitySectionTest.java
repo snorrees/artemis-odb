@@ -14,24 +14,7 @@ import static org.junit.Assert.*;
 public class EntitySectionTest {
 	@Test
 	public void read_entities_from_world_and_back_test() {
-		World world = new World();
-		world.initialize();
-
-		world.createEntity().edit()
-			.add(new ComponentX("hello 1"))
-			.add(new ComponentY("bye 1"));
-
-		world.createEntity().edit()
-			.add(new ComponentX("hello 2"));
-
-		world.createEntity().edit()
-			.add(new ComponentX("hello 3"))
-			.add(new ComponentY("bye 3"));
-
-		world.createEntity().edit()
-			.add(new ComponentY("bye 4"));
-
-		world.process();
+		World world = createWorld();
 
 		World world2 = new World();
 		world2.initialize();
@@ -62,6 +45,29 @@ public class EntitySectionTest {
 			world2.getEntity(3).getCompositionId());
 
 		fail("not checking component values");
+	}
+
+	private World createWorld() {
+		World world = new World();
+		world.initialize();
+
+		world.createEntity().edit()
+			.add(new ComponentX("hello 1"))
+			.add(new ComponentY("bye 1"));
+
+		world.createEntity().edit()
+			.add(new ComponentX("hello 2"));
+
+		world.createEntity().edit()
+			.add(new ComponentX("hello 3"))
+			.add(new ComponentY("bye 3"));
+
+		world.createEntity().edit()
+			.add(new ComponentY("bye 4"));
+
+		world.process();
+
+		return world;
 	}
 
 	private static WorldModel worldModel(World world) {
