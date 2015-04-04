@@ -78,6 +78,7 @@ public abstract class ComponentMapper<A extends Component> {
 	 * @return true if the entity has this component type, false if it doesn't
 	 */
 	public abstract boolean has(Entity e);
+	public abstract boolean has(int entityId);
 
 
 	/**

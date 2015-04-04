@@ -77,6 +77,11 @@ class PackedComponentMapper<A extends PackedComponent> extends ComponentMapper<A
 	}
 
 	@Override
+	public boolean has(int entityId) {
+		return owners.get(entityId);
+	}
+
+	@Override
 	public A get(Entity e, boolean forceNewInstance) throws ArrayIndexOutOfBoundsException {
 		if (forceNewInstance) {
 			A c = newInstance();

@@ -7,6 +7,7 @@ import com.artemis.component.ComponentY;
 import com.artemis.component.Packed;
 import com.artemis.component.ReusedComponent;
 import com.artemis.io.section.NullComponentTypeSection;
+import com.artemis.utils.reflect.ClassReflection;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

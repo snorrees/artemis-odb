@@ -60,6 +60,13 @@ class BasicComponentMapper<A extends Component> extends ComponentMapper<A> {
 		return getSafe(e) != null;		
 	}
 
+	@Override
+	public boolean has(int entityId) {
+		return components.isIndexWithinBounds(entityId)
+			? components.get(entityId) != null
+			: false;
+	}
+
 
 	@Override
 	public A get(Entity e, boolean forceNewInstance) throws ArrayIndexOutOfBoundsException {
