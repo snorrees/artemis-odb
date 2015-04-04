@@ -1,25 +1,38 @@
 package com.artemis.io;
 
 import com.artemis.Component;
-import com.artemis.ComponentMapper;
+import com.artemis.Entity;
 import com.artemis.World;
+import com.artemis.utils.reflect.ReflectionException;
 
 import java.io.DataInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
 public class ComponentInputStream extends DataInputStream {
-	private final Class<? extends Component> type;
+	private final ComponentTypeSection.ComponentModel model;
+	private ComponentDataSection.ComponentData componentData;
 
-	public ComponentInputStream(ComponentTypeSection.ComponentModel model,
+	public ComponentInputStream(InputStream inputStream,
+								ComponentTypeSection.ComponentModel model,
 								ComponentDataSection.ComponentData componentData) {
 
-		super(componentData.getInputStream());
-		type = model.type;
+		super(inputStream);
+		this.model = model;
+		this.componentData = componentData;
 	}
 
-	public void readIntoWorld(World world) {
-		ComponentMapper<? extends Component> mapper = world.getMapper(type);
-
-		throw new RuntimeException("need to write data to mapper");
+	public void readIntoWorld(World world) throws IOException {
 	}
+
+	public void readIntoComponent(Component c) throws IOException, ReflectionException {
+		for (ComponentTypeSection.FieldReflector field : model.fields) {
+			field.read(this, c);
+		}
+	}
+
+	public Entity readEntity(World world) throws IOException {
+		return world.getEntity(readInt());
+	}
+
 }

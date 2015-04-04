@@ -1,7 +1,6 @@
 package com.artemis.io;
 
 import com.artemis.Component;
-import com.artemis.ComponentMapper;
 import com.artemis.utils.reflect.ReflectionException;
 
 import java.io.DataOutputStream;

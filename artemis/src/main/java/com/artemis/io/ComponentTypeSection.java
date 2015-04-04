@@ -1,9 +1,6 @@
 package com.artemis.io;
 
-import com.artemis.ArchetypeBuilder;
-import com.artemis.Component;
-import com.artemis.ComponentType;
-import com.artemis.World;
+import com.artemis.*;
 import com.artemis.utils.Bag;
 import com.artemis.utils.ImmutableBag;
 import com.artemis.utils.reflect.ClassReflection;
@@ -13,6 +10,7 @@ import com.artemis.utils.reflect.ReflectionException;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
@@ -115,16 +113,19 @@ public abstract class ComponentTypeSection extends Section {
 					'}';
 		}
 
-		void serialize(Component source, DataOutputStream target) throws ReflectionException {
+		void serialize(Component source, ComponentOutputStream target)
+				throws ReflectionException {
+
 			for (FieldReflector field : fields) {
-				field.write(source, target);
+				field.write(target, source);
 			}
 		}
 
-		void deserialize(Component source, DataOutputStream target) throws ReflectionException {
-			sdfakgjdkls;fj dsfjklgjdsfkl;gjldksfjgldsfgjd;sf l
+		void deserialize(ComponentInputStream inputStream, ComponentDataSection.ComponentData componentData, Component component)
+				throws ReflectionException {
+
 			for (FieldReflector field : fields) {
-				field.write(source, target);
+				field.read(inputStream, component);
 			}
 		}
 
@@ -139,9 +140,11 @@ public abstract class ComponentTypeSection extends Section {
 	static class FieldReflector {
 		public final String name;
 		public final Field field;
-		public final Method method;
+		public final Method writeMethod;
+		public final Method readMethod;
 
-		private static final Map<Class<?>, Method> methodMappings = new HashMap<Class<?>, Method>();
+		private static final Map<Class<?>, Method> readMethodMappings = new HashMap<Class<?>, Method>();
+		private static final Map<Class<?>, Method> writeMethodMappings = new HashMap<Class<?>, Method>();
 		static {
 			try {
 				registerMethod(boolean.class);
@@ -151,13 +154,24 @@ public abstract class ComponentTypeSection extends Section {
 				registerMethod(double.class);
 				registerMethod(long.class);
 
-				methodMappings.put(byte.class,
+				writeMethodMappings.put(byte.class,
 					ClassReflection.getMethod(DataOutputStream.class, "writeByte", int.class));
-				methodMappings.put(short.class,
+				writeMethodMappings.put(short.class,
 					ClassReflection.getMethod(DataOutputStream.class, "writeShort", int.class));
+				readMethodMappings.put(byte.class,
+					ClassReflection.getMethod(DataInputStream.class, "readByte"));
+				readMethodMappings.put(short.class,
+					ClassReflection.getMethod(DataInputStream.class, "readShort"));
 			} catch (ReflectionException e) {
 				e.printStackTrace();
 			}
+		}
+
+		FieldReflector(String name, Field field) {
+			this.name = name;
+			this.field = field;
+			writeMethod = writeMethodMappings.get(field.getType());
+			readMethod = readMethodMappings.get(field.getType());
 		}
 
 		private static void registerMethod(Class<?> type) throws ReflectionException {
@@ -166,22 +180,18 @@ public abstract class ComponentTypeSection extends Section {
 		}
 
 		private static void registerMethod(Class<?> type, String name) throws ReflectionException {
-			methodMappings.put(type,
+			writeMethodMappings.put(type,
 				ClassReflection.getMethod(DataOutputStream.class, "write" + name, type));
+			readMethodMappings.put(type,
+				ClassReflection.getMethod(DataInputStream.class, "read" + name));
 		}
 
-		FieldReflector(String name, Field field) {
-			this.name = name;
-			this.field = field;
-			method = methodMappings.get(field.getType());
+		void read(ComponentInputStream in, Component target) throws ReflectionException {
+			field.set(target, readMethod.invoke(in));
 		}
 
-		void write(Object instance, Object value) throws ReflectionException {
-			field.set(instance, value);
-		}
-
-		void write(DataInputStream out, Object source) throws ReflectionException {
-			method.invoke(out, source);
+		void write(ComponentOutputStream out, Component source) throws ReflectionException {
+			writeMethod.invoke(out, field.get(source));
 		}
 	}
 

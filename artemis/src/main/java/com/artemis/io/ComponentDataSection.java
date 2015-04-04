@@ -32,18 +32,30 @@ public abstract class ComponentDataSection extends Section {
 
 	@Override
 	protected final void sectionToWorld(World world) {
-		for (ComponentData componentData : modelData) {
+		Bag<ComponentTypeSection.ComponentModel> types = componentTypeSection.componentTypes;
+		for (ComponentTypeSection.ComponentModel model : types) {
+			for (ComponentData componentData : modelData) {
+				try {
+					componentData.toWorld(world, model);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				} catch (ReflectionException e) {
+					throw new RuntimeException(e);
+				}
+			}
 		}
 	}
 
 	static class ComponentData {
 		private final ComponentOutputStream data;
 		private final ByteArrayOutputStream baos;
+		private final Class<? extends Component> type;
 
 		public ComponentData(World world,
 							 Bag<EntitySection.EntityModel> entities,
 							 ComponentTypeSection.ComponentModel model) {
 
+			type = model.type;
 			baos = new ByteArrayOutputStream();
 			this.data = new ComponentOutputStream(baos);
 			ComponentMapper<? extends Component> mapper = world.getMapper(model.type);
@@ -61,8 +73,20 @@ public abstract class ComponentDataSection extends Section {
 			}
 		}
 
-		ComponentInputStream getInputStream() {
-			return new ComponentInputStream(new ByteArrayInputStream(baos.toByteArray());
+//		private ComponentInputStream getInputStream() {
+//			return new ComponentInputStream(new ByteArrayInputStream(baos.toByteArray()));
+//		}
+
+		public void toWorld(World target, ComponentTypeSection.ComponentModel model)
+				throws IOException, ReflectionException {
+
+			ComponentMapper<? extends Component> mapper = target.getMapper(type);
+			ComponentInputStream in = new ComponentInputStream(new ByteArrayInputStream(baos.toByteArray()), model, this);
+			while (in.available() > 0) {
+				Entity e = in.readEntity(target);
+				Component component = mapper.get(e);
+				in.readIntoComponent(component);
+			}
 		}
 	}
 }
