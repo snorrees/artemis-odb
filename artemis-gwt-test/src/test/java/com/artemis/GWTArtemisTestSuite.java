@@ -1,5 +1,7 @@
 package com.artemis;
 
+import com.artemis.io.ReferenceTrackerTest;
+import com.artemis.io.ComponentLookupSerializerTest;
 import junit.framework.TestCase;
 
 import com.google.gwt.junit.client.GWTTestCase;
@@ -11,7 +13,11 @@ public class GWTArtemisTestSuite extends TestCase {
 		WorldTest.class,
 		FactoryWireTest.class,
 		EntityFactoryTest.class,
-		ExtendedEntityFactoryTest.class
+		ExtendedEntityFactoryTest.class,
+
+		// reflection
+		ReferenceTrackerTest.class
+		//ComponentLookupSerializerTest.class - does not work at this time.
 	};
 
 	public static GWTTestSuite suite() {
